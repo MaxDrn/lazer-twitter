@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Lazer Twitter</title>
+    <link rel="stylesheet" href="./assets/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css" type="text/css">
+</head>
+<body>
+<div class="title">
+    <div class="wrapperTitle" style="font-size: 55px; color: white;">
+        Lazer Twitter
+    </div>
+    <br>
+    <div class="wrapperTitle" style="font-size: 55px; color: white;">
+        Idea
+    </div>
+
+    This is a small Project, where the idea is to code a simple Twitter clone called ‘Lazer-Twitter’ with very basic features.
+
+    It will contain a feed which consists of individual tweets made by different users.
+
+    In order to enable the user to like and write tweets, the project will provide a somewhat simple and basic UI.
+
+    <div class="wrapperTitle" style="font-size: 55px; color: white;">
+        Instructions
+    </div>
+
+    <br>
+
+    To begin, enter your username in the field above the feed and submit it.
+    Now that you have got your username set, you can click on the button "Write a Tweet",
+    in order to publish your first tweet!
+</div>
+<div class="interactive">
+    Username:
+    <input type="text" class="name" id="userField" size="35">
+    <button class="tweetButton" id="tButton">
+        Write a Tweet!
+    </button>
+</div>
+<div class="feed" id="feed">
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="./assets/bootstrap.min.js"></script>
+<script src="./assets/bootbox.all.min.js"></script>
+<script src="./main.js"></script>
+</body>
+</html>
