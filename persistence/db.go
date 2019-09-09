@@ -27,7 +27,7 @@ func NewDatabase() (*database, error) {
 type Database interface {
 	InsertIntoDatabase(tweet *ClientTweet) (int, error)
 	GetAllTweets() ([]ClientTweet, error)
-	LikeTweet(int)
+	LikeTweet(int) error
 	GetRow(int) (*ClientTweet, error)
 }
 type database struct {
@@ -38,7 +38,10 @@ var _ Database = &database{}
 
 func (d database) InsertIntoDatabase(inf *ClientTweet) (int, error) {
 	lastInsertId := 0
-	d.database.QueryRow(`INSERT INTO Tweets VALUES(DEFAULT, $1, $2, $3, $4) RETURNING id`, inf.Time, inf.Likes, inf.User, inf.Message).Scan(&lastInsertId)
+	err := d.database.QueryRow(`INSERT INTO Tweets VALUES(DEFAULT, $1, $2, $3, $4) RETURNING id`, inf.Time, inf.Likes, inf.User, inf.Message).Scan(&lastInsertId)
+	if err != nil {
+		return 0, err
+	}
 	return lastInsertId, nil
 }
 
@@ -63,14 +66,16 @@ func (d database) GetAllTweets() ([]ClientTweet, error) {
 	return tweets, nil
 }
 
-func (d database) LikeTweet(id int) {
+func (d database) LikeTweet(id int) error {
 	_, err := d.database.Exec(`
 	UPDATE Tweets SET Likes=Likes+1 WHERE Id=$1;
 	`, id)
 
 	if err != nil {
-		log.Error(err.Error())
+		return errors.Wrap(err, "failed to up the like count")
 	}
+
+	return nil
 }
 
 func (d database) GetRow(id int) (*ClientTweet, error) {

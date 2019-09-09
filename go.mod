@@ -17,6 +17,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3
+	github.com/stretchr/testify v1.2.2
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	howl.moe/claws v0.0.0-20190224172428-2cdc641875d8 // indirect
 	howl.moe/nanojson v0.1.0 // indirect

@@ -4,6 +4,7 @@ var Current = ConfigWithDefaults()
 
 func ConfigWithDefaults() *Config {
 	return &Config{
+		HostName:       "localhost",
 		RESTListenPort: "8080",
 		DBName:         "postgres",
 		DBUser:         "postgres",
@@ -14,6 +15,7 @@ func ConfigWithDefaults() *Config {
 }
 
 type Config struct {
+	HostName       string
 	RESTListenPort string
 	DBName         string
 	DBUser         string

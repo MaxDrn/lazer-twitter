@@ -104,7 +104,18 @@ func (h *WebSocketHandler) handleData(socket *websocket.Conn, w http.ResponseWri
 				msg, multi, err := val.Handle(raw)
 
 				if err != nil {
-					log.Errorf("could not handle %v", err)
+					errStruct := ErrorMessage{
+						Typ:     "error",
+						Message: "could not handle " + err.Error(),
+					}
+
+					byteErr, err := json.Marshal(errStruct)
+
+					if err != nil {
+						log.Error("could not send error message")
+					}
+
+					socket.WriteMessage(1, byteErr)
 					continue
 				}
 

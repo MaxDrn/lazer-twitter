@@ -105,6 +105,8 @@ function handleData(connection, feed, tweets) {
             let desButton = document.getElementById(jsonData.tweet.id);
             let newCount = jsonData.tweet.likes;
             desButton.innerHTML = parseInt(newCount) + " &#9786;";
+        } else if (jsonData.typ == "error"){
+            console.log(jsonData.message);
         }
     };
 

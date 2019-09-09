@@ -35,7 +35,7 @@ func (m *messageHandler) Handle(inf rawMessage) ([]byte, bool, error) {
 	message.Tweet.Id = result
 	msg, err := json.Marshal(message)
 	if err != nil {
-		return nil, false, errors.Wrapf(err, "could not convert to json %s", message)
+		return nil, false, errors.Wrap(err, "could not convert to json")
 	}
 	return msg, true, nil
 }

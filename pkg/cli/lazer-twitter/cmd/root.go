@@ -27,10 +27,10 @@ func NewRootCommand() *cobra.Command {
 
 			netHttp.Handle("/socket", netHttp.HandlerFunc(handler.SocketHandler))
 			netHttp.Handle("/", netHttp.FileServer(netHttp.Dir("./assets")))
-			_ = netHttp.ListenAndServe("localhost:"+options.Current.RESTListenPort, nil)
+			_ = netHttp.ListenAndServe(options.Current.HostName+":"+options.Current.RESTListenPort, nil)
 		},
 	}
-
+	cmd.Flags().StringVar(&options.Current.HostName, "host-name", options.Current.HostName, "host name for server")
 	cmd.Flags().StringVar(&options.Current.RESTListenPort, "rest-listen-port", options.Current.RESTListenPort, "tcp port to listen for HTTP requests")
 	cmd.Flags().StringVar(&options.Current.DBName, "db-name", options.Current.DBName, "database name")
 	cmd.Flags().StringVar(&options.Current.DBUser, "db-user", options.Current.DBUser, "database user")

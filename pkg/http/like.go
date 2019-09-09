@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"lazer-twitter/persistence"
 
-	"github.com/fid-dev/go-pflog/log"
+	"github.com/pkg/errors"
 )
 
 func NewLikeHandler(database persistence.Database) *LikeHandler {
@@ -30,15 +30,19 @@ func (l LikeHandler) Handle(inf rawMessage) ([]byte, bool, error) {
 	likeMessage := likedMessage{}
 	err := json.Unmarshal(inf.Msg, &likeMessage)
 	id := likeMessage.TweetId
-	l.Database.LikeTweet(id)
+	err = l.Database.LikeTweet(id)
+	if err != nil {
+		return nil, true, errors.Wrap(err, "could not like your tweet")
+	}
 	tweet, err := l.Database.GetRow(id)
 	copyTweet := Infos{}
-	copyTweet.Tweet = *tweet
+	if tweet != nil {
+		copyTweet.Tweet = *tweet
+	}
 	copyTweet.Typ = "liked"
 	likeTweet, err := json.Marshal(copyTweet)
-
 	if err != nil {
-		log.Errorf("could not convert tweet struct %v", err)
+		return nil, true, errors.Wrap(err, "could not convert to json")
 	}
 
 	return likeTweet, true, nil

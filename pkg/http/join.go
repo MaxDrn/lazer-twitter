@@ -28,22 +28,15 @@ func (j JoinHandler) CanHandle(raw rawMessage) bool {
 
 func (j JoinHandler) Handle(raw rawMessage) ([]byte, bool, error) {
 	result, err := j.Database.GetAllTweets()
-
 	if err != nil {
 		log.Error(err.Error())
 	}
 	aTweets := allTweets{Typ: "all", TweetObjects: result}
-
-	stringATweets, err := json.Marshal(aTweets)
-
+	byteTweets, err := json.Marshal(aTweets)
 	if err != nil {
 		log.Errorf("could not convert tweets %v", err)
 		return nil, false, err
 	}
 
-	if err != nil {
-		log.Errorf("could not send tweets %v", err)
-		return nil, false, err
-	}
-	return stringATweets, false, err
+	return byteTweets, false, err
 }
