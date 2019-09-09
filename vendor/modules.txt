@@ -1,0 +1,31 @@
+# github.com/fid-dev/go-apiserver v0.0.0-20190423082234-36720d190576
+github.com/fid-dev/go-apiserver/pkg/util/flag
+github.com/fid-dev/go-apiserver/pkg/util/logs
+# github.com/fid-dev/go-pflog v0.0.0-20190131153352-f2d18c8e2a88
+github.com/fid-dev/go-pflog/container
+github.com/fid-dev/go-pflog/log
+github.com/fid-dev/go-pflog/pkg/logging
+github.com/fid-dev/go-pflog
+github.com/fid-dev/go-pflog/pkg/encoding/text
+github.com/fid-dev/go-pflog/pkg/logger
+github.com/fid-dev/go-pflog/pkg/registry
+# github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+github.com/golang/glog
+# github.com/gorilla/websocket v1.4.1
+github.com/gorilla/websocket
+# github.com/inconshreveable/mousetrap v1.0.0
+github.com/inconshreveable/mousetrap
+# github.com/lib/pq v1.2.0
+github.com/lib/pq
+github.com/lib/pq/oid
+github.com/lib/pq/scram
+# github.com/mrcrgl/bytesf v0.0.0-20190110210757-afb18f806d31
+github.com/mrcrgl/bytesf
+# github.com/mrcrgl/timef v0.0.1
+github.com/mrcrgl/timef
+# github.com/satori/go.uuid v1.2.0
+github.com/satori/go.uuid
+# github.com/spf13/cobra v0.0.5
+github.com/spf13/cobra
+# github.com/spf13/pflag v1.0.3
+github.com/spf13/pflag
