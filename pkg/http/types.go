@@ -11,3 +11,9 @@ type ErrorMessage struct {
 	Typ     string `json:"typ"`
 	Message string `json:"message"`
 }
+
+type likedMessage struct {
+	Typ      string `json:"typ"`
+	Username string `json:"username"`
+	TweetId  int    `json:"tweetid"`
+}

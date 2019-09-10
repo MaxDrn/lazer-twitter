@@ -21,16 +21,33 @@ func (l LikeHandler) CanHandle(inf rawMessage) bool {
 	return inf.Typ == "like"
 }
 
-type likedMessage struct {
-	Typ     string `json:"typ"`
-	TweetId int    `json:"tweetid"`
-}
-
 func (l LikeHandler) Handle(inf rawMessage) ([]byte, bool, error) {
 	likeMessage := likedMessage{}
 	err := json.Unmarshal(inf.Msg, &likeMessage)
 	id := likeMessage.TweetId
-	err = l.Database.LikeTweet(id)
+	rows, errTwo := l.Database.CheckLike(id, likeMessage.Username)
+	if errTwo != nil {
+		return nil, true, errTwo
+	}
+
+	for rows.Next() {
+		mockLike := likedMessage{}
+		err := rows.Scan(&mockLike.TweetId, &mockLike.Username)
+		if err != nil {
+			return nil, false, err
+		}
+		if mockLike.TweetId == id && mockLike.Username == likeMessage.Username {
+			likeFailed := likedMessage{
+				Typ:      "failedLike",
+				Username: likeMessage.Username,
+				TweetId:  id,
+			}
+			byteLikeFail, _ := json.Marshal(likeFailed)
+			return byteLikeFail, false, nil
+		}
+	}
+
+	err = l.Database.LikeTweet(id, likeMessage.Username)
 	if err != nil {
 		return nil, true, errors.Wrap(err, "could not like your tweet")
 	}

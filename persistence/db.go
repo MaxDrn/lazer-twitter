@@ -17,6 +17,12 @@ type ClientTweet struct {
 	Message string `json:"message"`
 }
 
+type Login struct {
+	Typ      string `json:"typ"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 func NewDatabase() (*database, error) {
 	db, err := connectToDatabase()
 	return &database{
@@ -27,8 +33,11 @@ func NewDatabase() (*database, error) {
 type Database interface {
 	InsertIntoDatabase(tweet *ClientTweet) (int, error)
 	GetAllTweets() ([]ClientTweet, error)
-	LikeTweet(int) error
+	LikeTweet(int, string) error
 	GetRow(int) (*ClientTweet, error)
+	LoginDatabase(string, string) (bool, error)
+	RegisterDatabase(string, string) (bool, error)
+	CheckLike(int, string) (*sql.Rows, error)
 }
 type database struct {
 	database *sql.DB
@@ -66,11 +75,17 @@ func (d database) GetAllTweets() ([]ClientTweet, error) {
 	return tweets, nil
 }
 
-func (d database) LikeTweet(id int) error {
+func (d database) LikeTweet(id int, username string) error {
 	_, err := d.database.Exec(`
 	UPDATE Tweets SET Likes=Likes+1 WHERE Id=$1;
 	`, id)
+	if err != nil {
+		return errors.Wrap(err, "failed to up the like count")
+	}
 
+	_, err = d.database.Exec(`
+	INSERT INTO LikedTweets VALUES($1, $2);
+	`, id, username)
 	if err != nil {
 		return errors.Wrap(err, "failed to up the like count")
 	}
@@ -121,6 +136,57 @@ func connectToDatabase() (*sql.DB, error) {
 
 	db.Exec(`
 	CREATE TABLE IF NOT EXISTS Tweets(Id SERIAL PRIMARY KEY, TweetTime text, Likes int, UserName text, Message text);
+	CREATE TABLE IF NOT EXISTS UserData(Username text, Credentials text);
+	CREATE TABLE IF NOT EXISTS LikedTweets(Id int, Username text);
 	`)
 	return db, nil
+}
+
+func (d database) LoginDatabase(username string, password string) (bool, error) {
+	result, err := d.database.Query(`SELECT UserData.Username, UserData.Credentials from UserData WHERE Username=$1 AND Credentials=$2;`, username, password)
+	if err != nil {
+		log.Error(err.Error())
+		return false, err
+	}
+	mockLogin := Login{}
+
+	for result.Next() {
+		err := result.Scan(&mockLogin.Username, &mockLogin.Password)
+		if err != nil {
+			log.Error(err.Error())
+			return false, err
+		}
+	}
+
+	if mockLogin.Username == username && mockLogin.Password == password {
+		return true, nil
+	} else {
+		return false, nil
+	}
+}
+
+func (d database) RegisterDatabase(username string, password string) (bool, error) {
+	result, err := d.database.Query(`SELECT Username from UserData WHERE Username=$1;`, username)
+	mockLogin := Login{}
+
+	for result.Next() {
+		_ = result.Scan(&mockLogin.Username)
+		if mockLogin.Username == username {
+			return false, errors.Wrap(err, "could not register into database")
+		}
+	}
+
+	_, err = d.database.Exec(`INSERT INTO UserData Values($1, $2);`, username, password)
+	if err != nil {
+		return false, errors.Wrap(err, "could not register into database")
+	}
+	return true, nil
+}
+
+func (d database) CheckLike(id int, username string) (*sql.Rows, error) {
+	result, err := d.database.Query(`SELECT Id, Username FROM LikedTweets WHERE Id=$1 AND Username=$2;`, id, username)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to evaluate query")
+	}
+	return result, nil
 }

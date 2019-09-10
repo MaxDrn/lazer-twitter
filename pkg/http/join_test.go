@@ -14,6 +14,14 @@ type mockDB struct {
 	returnedObjects int
 }
 
+func (m *mockDB) RegisterDatabase(string, string) (bool, error) {
+	panic("implement me")
+}
+
+func (m *mockDB) LoginDatabase(string, string) (bool, error) {
+	panic("implement me")
+}
+
 var _ persistence.Database = &mockDB{}
 
 func (m *mockDB) InsertIntoDatabase(tweet *persistence.ClientTweet) (int, error) {
