@@ -19,6 +19,12 @@ type ClientTweet struct {
 	Message string `json:"message"`
 }
 
+type likedMessage struct {
+	Typ     string `json:"typ"`
+	UserID  int    `json:"userid"`
+	TweetId int    `json:"tweetid"`
+}
+
 type Login struct {
 	Uid      int    `json:"id"`
 	Typ      string `json:"typ"`
@@ -186,13 +192,23 @@ func (d database) Register(username string, password string) (bool, error) {
 }
 
 func (d database) CheckLike(tweetid int, userid int) (bool, error) {
-	result, err := d.database.Query(`SELECT Id, UserID FROM LikedTweets WHERE Id=$1 AND UserID=$2;`, tweetid, userid)
+	rows, err := d.database.Query(`SELECT UserID FROM Tweets WHERE Id=$1;`, tweetid)
+	rows.Next()
+	tempLike := likedMessage{}
+	err = rows.Scan(&tempLike.UserID)
 	if err != nil {
+		return false, nil
+	}
+	result, errTwo := d.database.Query(`SELECT Id, UserID FROM LikedTweets WHERE Id=$1 AND UserID=$2;`, tweetid, userid)
+	if errTwo != nil {
 		return false, err
 	}
 
 	if result.Next() {
 		return false, nil
+	} else if !result.Next() && userid != tempLike.UserID {
+		return true, nil
+	} else {
+		return false, nil
 	}
-	return true, nil
 }
