@@ -24,13 +24,16 @@ func (l LikeHandler) CanHandle(inf rawMessage) bool {
 func (l LikeHandler) Handle(inf rawMessage) ([]byte, bool, error) {
 	likeMessage := likedMessage{}
 	err := json.Unmarshal(inf.Msg, &likeMessage)
+	if err != nil {
+		return nil, true, err
+	}
 	id := likeMessage.TweetId
-	canLike, errTwo := l.Database.CheckLike(id, likeMessage.UserID)
-	if errTwo != nil {
-		return nil, true, errTwo
+	canLike, err := l.Database.CheckLike(id, likeMessage.UserID)
+	if err != nil {
+		return nil, true, err
 	}
 
-	if canLike == false {
+	if !canLike {
 		likeFailed := likedMessage{
 			Typ:     "failedLike",
 			UserID:  likeMessage.UserID,

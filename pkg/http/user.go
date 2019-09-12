@@ -3,8 +3,6 @@ package http
 import (
 	"encoding/json"
 	"lazer-twitter/persistence"
-
-	"github.com/fid-dev/go-pflog/log"
 )
 
 func NewUserHandler(database persistence.Database) *UserHandler {
@@ -25,7 +23,7 @@ func (l *UserHandler) Handle(raw rawMessage) ([]byte, bool, error) {
 	userCredentials := persistence.Login{}
 	err := json.Unmarshal(raw.Msg, &userCredentials)
 	if err != nil {
-		log.Error(err.Error())
+		return nil, false, err
 	}
 	if raw.Typ == "login" {
 		data, err := l.Login(userCredentials.Username, userCredentials.Password)
@@ -44,12 +42,12 @@ func (l *UserHandler) Handle(raw rawMessage) ([]byte, bool, error) {
 	return nil, false, nil
 }
 func (l *UserHandler) Login(username string, password string) ([]byte, error) {
-	id, data, err := l.database.Login(username, password)
+	id, ok, err := l.database.Login(username, password)
 	if err != nil {
 		return nil, err
 	}
 
-	if data == true {
+	if ok == true {
 		loginMessage := persistence.Login{
 			Uid:      id,
 			Typ:      "loggedin",
@@ -61,7 +59,7 @@ func (l *UserHandler) Login(username string, password string) ([]byte, error) {
 			return nil, err
 		}
 		return byteMsg, nil
-	} else if data != true {
+	} else if ok != true {
 		failedLogin := persistence.Login{
 			Uid:      id,
 			Typ:      "failedLogin",
@@ -78,12 +76,12 @@ func (l *UserHandler) Login(username string, password string) ([]byte, error) {
 }
 
 func (l *UserHandler) Register(username string, password string) ([]byte, error) {
-	data, err := l.database.Register(username, password)
+	ok, err := l.database.Register(username, password)
 	if err != nil {
 		return nil, err
 	}
 
-	if data == true {
+	if ok == true {
 		registerMessage := persistence.Login{
 			Typ:      "registered",
 			Username: username,
@@ -94,7 +92,7 @@ func (l *UserHandler) Register(username string, password string) ([]byte, error)
 			return nil, err
 		}
 		return byteMsg, nil
-	} else if data != true {
+	} else if ok != true {
 		failedRegister := persistence.Login{
 			Typ:      "failedRegister",
 			Username: username,

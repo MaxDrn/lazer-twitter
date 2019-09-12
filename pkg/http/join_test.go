@@ -22,11 +22,19 @@ func (m *mockDB) GetTweet(int) (*persistence.ClientTweet, error) {
 }
 
 func (m *mockDB) Login(string, string) (int, bool, error) {
-	return 0, true, nil
+	if m.returnError == true {
+		return 0, false, nil
+	} else {
+		return 0, true, nil
+	}
 }
 
 func (m *mockDB) Register(string, string) (bool, error) {
-	return false, nil
+	if m.returnError == true {
+		return false, nil
+	} else {
+		return true, nil
+	}
 }
 
 func (m *mockDB) CheckLike(int, int) (bool, error) {
@@ -37,14 +45,6 @@ func (m *mockDB) CheckLike(int, int) (bool, error) {
 		return true, nil
 	}
 	return true, nil
-}
-
-func (m *mockDB) RegisterDatabase(string, string) (bool, error) {
-	return false, nil
-}
-
-func (m *mockDB) LoginDatabase(string, string) (bool, error) {
-	return false, nil
 }
 
 var _ persistence.Database = &mockDB{}

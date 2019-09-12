@@ -15,6 +15,5 @@ type ErrorMessage struct {
 type likedMessage struct {
 	Typ     string `json:"typ"`
 	UserID  int    `json:"userid"`
-	User    string `json:"user"`
 	TweetId int    `json:"tweetid"`
 }

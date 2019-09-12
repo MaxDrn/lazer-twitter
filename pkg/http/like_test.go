@@ -36,9 +36,9 @@ func Test_LikeHandler(t *testing.T) {
 				Typ: "like",
 				Msg: []byte(`{"typ":"like","userid":0,"tweetid":"0"`),
 			},
-			expectedOutput:    []byte(`{"typ":"failedLike","userid":0,"user":"","tweetid":0}`),
-			expectedError:     false,
-			expectedLikeCalls: 1,
+			expectedOutput:    nil,
+			expectedError:     true,
+			expectedLikeCalls: 0,
 			returnError:       true,
 		},
 	}

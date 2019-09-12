@@ -154,9 +154,8 @@ func connectToDatabase() (*sql.DB, error) {
 func (d database) Login(username string, password string) (int, bool, error) {
 	rows, _ := d.database.Query(`SELECT Id, Username, Credentials FROM UserData WHERE Username=$1`, username)
 	pass := tempPass{}
-	for rows.Next() {
-		rows.Scan(&pass.Uid, &pass.username, &pass.password)
-	}
+	rows.Next()
+	rows.Scan(&pass.Uid, &pass.username, &pass.password)
 
 	err := bcrypt.CompareHashAndPassword([]byte(pass.password), []byte(password))
 	if err != nil {
@@ -170,14 +169,11 @@ func (d database) Login(username string, password string) (int, bool, error) {
 
 func (d database) Register(username string, password string) (bool, error) {
 	result, err := d.database.Query(`SELECT Username from UserData WHERE Username=$1;`, username)
-	tempLogin := Login{}
 
-	for result.Next() {
-		_ = result.Scan(&tempLogin.Username)
-		if tempLogin.Username == username {
-			return false, errors.Wrap(err, "could not register into database")
-		}
+	if result.Next() {
+		return false, errors.Wrap(err, "could not register into database")
 	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
 		return false, errors.Wrap(err, "could not hash password")
@@ -195,12 +191,7 @@ func (d database) CheckLike(tweetid int, userid int) (bool, error) {
 		return false, err
 	}
 
-	counter := 0
-	for result.Next() {
-		counter++
-	}
-
-	if counter > 0 {
+	if result.Next() {
 		return false, nil
 	}
 	return true, nil
