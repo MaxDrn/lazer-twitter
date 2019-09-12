@@ -197,18 +197,19 @@ func (d database) CheckLike(tweetid int, userid int) (bool, error) {
 	tempLike := likedMessage{}
 	err = rows.Scan(&tempLike.UserID)
 	if err != nil {
-		return false, nil
+		return false, err
 	}
 	result, errTwo := d.database.Query(`SELECT Id, UserID FROM LikedTweets WHERE Id=$1 AND UserID=$2;`, tweetid, userid)
 	if errTwo != nil {
 		return false, err
 	}
-
-	if result.Next() {
-		return false, nil
-	} else if !result.Next() && userid != tempLike.UserID {
-		return true, nil
-	} else {
+	hasResult := result.Next()
+	if hasResult {
 		return false, nil
 	}
+	if !hasResult && userid != tempLike.UserID {
+		return true, nil
+	}
+
+	return false, nil
 }
