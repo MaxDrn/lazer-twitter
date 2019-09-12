@@ -13,7 +13,8 @@ type ErrorMessage struct {
 }
 
 type likedMessage struct {
-	Typ      string `json:"typ"`
-	Username string `json:"username"`
-	TweetId  int    `json:"tweetid"`
+	Typ     string `json:"typ"`
+	UserID  int    `json:"userid"`
+	User    string `json:"user"`
+	TweetId int    `json:"tweetid"`
 }

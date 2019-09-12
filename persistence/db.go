@@ -7,20 +7,23 @@ import (
 
 	"github.com/fid-dev/go-pflog/log"
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type ClientTweet struct {
 	Id      int    `json:"id"`
 	Time    string `json:"time"`
 	Likes   int    `json:"likes"`
+	UserID  int    `json:"userid"`
 	User    string `json:"user"`
 	Message string `json:"message"`
 }
 
 type Login struct {
+	Uid      int    `json:"id"`
 	Typ      string `json:"typ"`
 	Username string `json:"username"`
-	Password string `json:"password"`
+	Password string `json:"password,omitempty"`
 }
 
 func NewDatabase() (*database, error) {
@@ -31,23 +34,29 @@ func NewDatabase() (*database, error) {
 }
 
 type Database interface {
-	InsertIntoDatabase(tweet *ClientTweet) (int, error)
+	InsertTweet(*ClientTweet) (int, error)
 	GetAllTweets() ([]ClientTweet, error)
-	LikeTweet(int, string) error
-	GetRow(int) (*ClientTweet, error)
-	LoginDatabase(string, string) (bool, error)
-	RegisterDatabase(string, string) (bool, error)
-	CheckLike(int, string) (*sql.Rows, error)
+	LikeTweet(int, int) error
+	GetTweet(int) (*ClientTweet, error)
+	Login(string, string) (int, bool, error)
+	Register(string, string) (bool, error)
+	CheckLike(int, int) (bool, error)
 }
 type database struct {
 	database *sql.DB
 }
 
+type tempPass struct {
+	Uid      int
+	username string
+	password string
+}
+
 var _ Database = &database{}
 
-func (d database) InsertIntoDatabase(inf *ClientTweet) (int, error) {
+func (d database) InsertTweet(inf *ClientTweet) (int, error) {
 	lastInsertId := 0
-	err := d.database.QueryRow(`INSERT INTO Tweets VALUES(DEFAULT, $1, $2, $3, $4) RETURNING id`, inf.Time, inf.Likes, inf.User, inf.Message).Scan(&lastInsertId)
+	err := d.database.QueryRow(`INSERT INTO Tweets VALUES(DEFAULT, $1, $2, $3, $4, $5) RETURNING id`, inf.Time, inf.Likes, inf.UserID, inf.User, inf.Message).Scan(&lastInsertId)
 	if err != nil {
 		return 0, err
 	}
@@ -61,7 +70,7 @@ func (d database) GetAllTweets() ([]ClientTweet, error) {
 	tweets := make([]ClientTweet, 0)
 	for result.Next() {
 		copyTweet := ClientTweet{}
-		err := result.Scan(&copyTweet.Id, &copyTweet.Time, &copyTweet.Likes, &copyTweet.User, &copyTweet.Message)
+		err := result.Scan(&copyTweet.Id, &copyTweet.Time, &copyTweet.Likes, &copyTweet.UserID, &copyTweet.User, &copyTweet.Message)
 		if err != nil {
 			log.Errorf("could not find tweets %v", err)
 			continue
@@ -75,7 +84,7 @@ func (d database) GetAllTweets() ([]ClientTweet, error) {
 	return tweets, nil
 }
 
-func (d database) LikeTweet(id int, username string) error {
+func (d database) LikeTweet(id int, userID int) error {
 	_, err := d.database.Exec(`
 	UPDATE Tweets SET Likes=Likes+1 WHERE Id=$1;
 	`, id)
@@ -85,7 +94,7 @@ func (d database) LikeTweet(id int, username string) error {
 
 	_, err = d.database.Exec(`
 	INSERT INTO LikedTweets VALUES($1, $2);
-	`, id, username)
+	`, id, userID)
 	if err != nil {
 		return errors.Wrap(err, "failed to up the like count")
 	}
@@ -93,7 +102,7 @@ func (d database) LikeTweet(id int, username string) error {
 	return nil
 }
 
-func (d database) GetRow(id int) (*ClientTweet, error) {
+func (d database) GetTweet(id int) (*ClientTweet, error) {
 	result, err := d.database.Query(`
 		SELECT * FROM Tweets WHERE Id=$1;
 	`, id)
@@ -104,7 +113,7 @@ func (d database) GetRow(id int) (*ClientTweet, error) {
 	inf := ClientTweet{}
 
 	if result.Next() {
-		err := result.Scan(&inf.Id, &inf.Time, &inf.Likes, &inf.User, &inf.Message)
+		err := result.Scan(&inf.Id, &inf.Time, &inf.Likes, &inf.UserID, &inf.User, &inf.Message)
 
 		if err != nil {
 			return nil, err
@@ -135,58 +144,64 @@ func connectToDatabase() (*sql.DB, error) {
 	}
 
 	db.Exec(`
-	CREATE TABLE IF NOT EXISTS Tweets(Id SERIAL PRIMARY KEY, TweetTime text, Likes int, UserName text, Message text);
-	CREATE TABLE IF NOT EXISTS UserData(Username text, Credentials text);
-	CREATE TABLE IF NOT EXISTS LikedTweets(Id int, Username text);
+	CREATE TABLE IF NOT EXISTS Tweets(Id SERIAL PRIMARY KEY, TweetTime text, Likes int, UserID int, Username text, Message text);
+	CREATE TABLE IF NOT EXISTS UserData(Id SERIAL PRIMARY KEY, Username text, Credentials text);
+	CREATE TABLE IF NOT EXISTS LikedTweets(Id int, UserID int);
 	`)
 	return db, nil
 }
 
-func (d database) LoginDatabase(username string, password string) (bool, error) {
-	result, err := d.database.Query(`SELECT UserData.Username, UserData.Credentials from UserData WHERE Username=$1 AND Credentials=$2;`, username, password)
+func (d database) Login(username string, password string) (int, bool, error) {
+	rows, _ := d.database.Query(`SELECT Id, Username, Credentials FROM UserData WHERE Username=$1`, username)
+	pass := tempPass{}
+	for rows.Next() {
+		rows.Scan(&pass.Uid, &pass.username, &pass.password)
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(pass.password), []byte(password))
 	if err != nil {
-		log.Error(err.Error())
-		return false, err
-	}
-	mockLogin := Login{}
-
-	for result.Next() {
-		err := result.Scan(&mockLogin.Username, &mockLogin.Password)
-		if err != nil {
-			log.Error(err.Error())
-			return false, err
-		}
+		return pass.Uid, false, nil
+	} else if err == nil && username == pass.username {
+		return pass.Uid, true, nil
 	}
 
-	if mockLogin.Username == username && mockLogin.Password == password {
-		return true, nil
-	} else {
-		return false, nil
-	}
+	return pass.Uid, false, nil
 }
 
-func (d database) RegisterDatabase(username string, password string) (bool, error) {
+func (d database) Register(username string, password string) (bool, error) {
 	result, err := d.database.Query(`SELECT Username from UserData WHERE Username=$1;`, username)
-	mockLogin := Login{}
+	tempLogin := Login{}
 
 	for result.Next() {
-		_ = result.Scan(&mockLogin.Username)
-		if mockLogin.Username == username {
+		_ = result.Scan(&tempLogin.Username)
+		if tempLogin.Username == username {
 			return false, errors.Wrap(err, "could not register into database")
 		}
 	}
-
-	_, err = d.database.Exec(`INSERT INTO UserData Values($1, $2);`, username, password)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	if err != nil {
+		return false, errors.Wrap(err, "could not hash password")
+	}
+	_, err = d.database.Exec(`INSERT INTO UserData Values(DEFAULT, $1, $2);`, username, hash)
 	if err != nil {
 		return false, errors.Wrap(err, "could not register into database")
 	}
 	return true, nil
 }
 
-func (d database) CheckLike(id int, username string) (*sql.Rows, error) {
-	result, err := d.database.Query(`SELECT Id, Username FROM LikedTweets WHERE Id=$1 AND Username=$2;`, id, username)
+func (d database) CheckLike(tweetid int, userid int) (bool, error) {
+	result, err := d.database.Query(`SELECT Id, UserID FROM LikedTweets WHERE Id=$1 AND UserID=$2;`, tweetid, userid)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to evaluate query")
+		return false, err
 	}
-	return result, nil
+
+	counter := 0
+	for result.Next() {
+		counter++
+	}
+
+	if counter > 0 {
+		return false, nil
+	}
+	return true, nil
 }

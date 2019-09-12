@@ -1,7 +1,6 @@
 package http
 
 import (
-	"errors"
 	"lazer-twitter/persistence"
 	"testing"
 
@@ -14,12 +13,38 @@ type mockDB struct {
 	returnedObjects int
 }
 
+func (m *mockDB) InsertTweet(tweet *persistence.ClientTweet) (int, error) {
+	return 0, nil
+}
+
+func (m *mockDB) GetTweet(int) (*persistence.ClientTweet, error) {
+	return nil, nil
+}
+
+func (m *mockDB) Login(string, string) (bool, error) {
+	return true, nil
+}
+
+func (m *mockDB) Register(string, string) (bool, error) {
+	return false, nil
+}
+
+func (m *mockDB) CheckLike(int, string) (bool, error) {
+	m.likedCalls++
+	if m.returnError == true {
+		return false, nil
+	} else {
+		return true, nil
+	}
+	return true, nil
+}
+
 func (m *mockDB) RegisterDatabase(string, string) (bool, error) {
-	panic("implement me")
+	return false, nil
 }
 
 func (m *mockDB) LoginDatabase(string, string) (bool, error) {
-	panic("implement me")
+	return false, nil
 }
 
 var _ persistence.Database = &mockDB{}
@@ -52,13 +77,8 @@ func (m *mockDB) GetAllTweets() ([]persistence.ClientTweet, error) {
 	}
 	return nil, nil
 }
-func (m *mockDB) LikeTweet(i int) error {
-	m.likedCalls++
-	if m.returnError == true {
-		return errors.New("failed")
-	} else {
-		return nil
-	}
+func (m *mockDB) LikeTweet(i int, s string) error {
+	return nil
 }
 func (m *mockDB) GetRow(j int) (*persistence.ClientTweet, error) {
 	mockTweet := persistence.ClientTweet{

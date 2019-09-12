@@ -1,4 +1,5 @@
 let username;
+let userID;
 let infoField;
 window.onload = function () {
     let tweetButton = document.getElementById("tButton");
@@ -8,6 +9,7 @@ window.onload = function () {
     let signIn = document.getElementById("signin");
     let message = "";
     let signOut = document.getElementById("signOut");
+    signOut.style.display = "none";
     let tweets = [];
     let url = window.location.href;
     let prefix = url.split("//");
@@ -28,10 +30,10 @@ window.onload = function () {
         join(connection, user, pass);
     };
 
-    setInterval(handleData(connection, feed, tweets), 1000 / 10);
+    setInterval(handleData(connection, feed, tweets, signOut, signIn, userField, passwordField), 1000 / 10);
 };
 
-function handleData(connection, feed, tweets) {
+function handleData(connection, feed, tweets, signOut, signIn, userField, passwordField) {
     let jsonData;
     connection.onmessage = function (evt) {
         if (evt.data !== null && evt.data !== "") {
@@ -93,15 +95,20 @@ function handleData(connection, feed, tweets) {
             username = jsonData.username;
             infoField.innerHTML = "logged in as: " + username;
             infoField.style.visibility = "visible";
+            signIn.style.display = "none";
+            userField.style.display = "none";
+            passwordField.style.display = "none";
+            signOut.style.display = "inline-block";
             console.log("logged in");
+            userID = jsonData.id;
         } else if (jsonData.typ === "failedLogin") {
             bootbox.alert("wrong username and/or password");
             console.log("incorrect credentials");
-        } else if (jsonData.typ === "signedin") {
-            console.log("signed in");
+        } else if (jsonData.typ === "registered") {
+            console.log("successfully registered");
         } else if (jsonData.typ === "failedRegister") {
             bootbox.alert("An account with that name already exists");
-            console.log("failed to resgister");
+            console.log("failed to register");
         } else if (jsonData.typ === "failedLike") {
             console.log("failed to like");
         } else if (jsonData.typ === "error") {
@@ -138,7 +145,7 @@ function likeListener(likebutton, connection) {
         if (username !== "" && username !== null && username !== undefined) {
             let message = {
                 typ: "like",
-                username: username,
+                userid: userID,
                 tweetid: parseInt(this.id)
             };
 
@@ -175,6 +182,7 @@ function tweetListener(tweetButton, message, connection) {
                             time: time,
                             likes: 0,
                             user: username,
+                            userid: userID,
                             message: message,
                         }
                     };
@@ -208,12 +216,16 @@ function signInListener(signIn, userField, passwordField, connection) {
     });
 }
 
-function signOutListener(signOut) {
+function signOutListener(signOut, signIn, userField, passwordField) {
     signOut.addEventListener("click", function () {
         if (username !== "" && username !== null && username !== undefined) {
             username = "";
             infoField.innerHTML = "";
             infoField.style.visibility = "hidden";
+            signIn.style.display = "inline-block";
+            userField.style.display = "inline-block";
+            passwordField.style.display = "inline-block";
+            signOut.style.display = "none";
         } else {
             bootbox.alert("you are not logged in");
         }
@@ -232,7 +244,7 @@ function signUpListener(signup, login) {
 
 function initListener(signIn, signOut, signup, login, tweetButton, message, userField, passwordField, connection) {
     signInListener(signIn, userField, passwordField, connection);
-    signOutListener(signOut);
+    signOutListener(signOut, signIn, userField, passwordField);
     signUpListener(signup, login);
     tweetListener(tweetButton, message, connection);
 }

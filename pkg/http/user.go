@@ -7,35 +7,35 @@ import (
 	"github.com/fid-dev/go-pflog/log"
 )
 
-func NewLoginHandler(database persistence.Database) *LoginHandler {
-	return &LoginHandler{
+func NewUserHandler(database persistence.Database) *UserHandler {
+	return &UserHandler{
 		database: database,
 	}
 }
 
-type LoginHandler struct {
+type UserHandler struct {
 	database persistence.Database
 }
 
-func (l *LoginHandler) CanHandle(raw rawMessage) bool {
+func (l *UserHandler) CanHandle(raw rawMessage) bool {
 	return raw.Typ == "login" || raw.Typ == "signUp"
 }
 
-func (l *LoginHandler) Handle(raw rawMessage) ([]byte, bool, error) {
+func (l *UserHandler) Handle(raw rawMessage) ([]byte, bool, error) {
 	userCredentials := persistence.Login{}
-	json.Unmarshal(raw.Msg, &userCredentials)
-
+	err := json.Unmarshal(raw.Msg, &userCredentials)
+	if err != nil {
+		log.Error(err.Error())
+	}
 	if raw.Typ == "login" {
 		data, err := l.Login(userCredentials.Username, userCredentials.Password)
 		if err != nil {
-			log.Error(err.Error())
 			return nil, false, err
 		}
 		return data, false, nil
 	} else if raw.Typ == "signUp" {
 		data, err := l.Register(userCredentials.Username, userCredentials.Password)
 		if err != nil {
-			log.Error(err.Error())
 			return nil, false, err
 		}
 		return data, false, nil
@@ -43,35 +43,32 @@ func (l *LoginHandler) Handle(raw rawMessage) ([]byte, bool, error) {
 
 	return nil, false, nil
 }
-func (l *LoginHandler) Login(username string, password string) ([]byte, error) {
-	data, err := l.database.LoginDatabase(username, password)
+func (l *UserHandler) Login(username string, password string) ([]byte, error) {
+	id, data, err := l.database.Login(username, password)
 	if err != nil {
-		log.Error(err.Error())
 		return nil, err
 	}
 
 	if data == true {
 		loginMessage := persistence.Login{
+			Uid:      id,
 			Typ:      "loggedin",
 			Username: username,
-			Password: password,
 		}
 
 		byteMsg, err := json.Marshal(loginMessage)
 		if err != nil {
-			log.Error(err.Error())
 			return nil, err
 		}
 		return byteMsg, nil
 	} else if data != true {
 		failedLogin := persistence.Login{
+			Uid:      id,
 			Typ:      "failedLogin",
 			Username: username,
-			Password: password,
 		}
 		byteMsg, err := json.Marshal(failedLogin)
 		if err != nil {
-			log.Error(err.Error())
 			return nil, err
 		}
 		return byteMsg, nil
@@ -80,23 +77,20 @@ func (l *LoginHandler) Login(username string, password string) ([]byte, error) {
 	return nil, nil
 }
 
-func (l *LoginHandler) Register(username string, password string) ([]byte, error) {
-	data, err := l.database.RegisterDatabase(username, password)
+func (l *UserHandler) Register(username string, password string) ([]byte, error) {
+	data, err := l.database.Register(username, password)
 	if err != nil {
-		log.Error(err.Error())
 		return nil, err
 	}
 
 	if data == true {
 		registerMessage := persistence.Login{
-			Typ:      "signedin",
+			Typ:      "registered",
 			Username: username,
-			Password: password,
 		}
 
 		byteMsg, err := json.Marshal(registerMessage)
 		if err != nil {
-			log.Error(err.Error())
 			return nil, err
 		}
 		return byteMsg, nil
@@ -104,11 +98,9 @@ func (l *LoginHandler) Register(username string, password string) ([]byte, error
 		failedRegister := persistence.Login{
 			Typ:      "failedRegister",
 			Username: username,
-			Password: password,
 		}
 		byteMsg, err := json.Marshal(failedRegister)
 		if err != nil {
-			log.Error(err.Error())
 			return nil, err
 		}
 		return byteMsg, nil

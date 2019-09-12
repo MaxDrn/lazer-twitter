@@ -27,7 +27,7 @@ func (m *messageHandler) CanHandle(inf rawMessage) bool {
 func (m *messageHandler) Handle(inf rawMessage) ([]byte, bool, error) {
 	message := Infos{}
 	err := json.Unmarshal(inf.Msg, &message)
-	result, err := m.database.InsertIntoDatabase(&message.Tweet)
+	result, err := m.database.InsertTweet(&message.Tweet)
 
 	if err != nil {
 		log.Error(err.Error())

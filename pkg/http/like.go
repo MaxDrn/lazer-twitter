@@ -25,33 +25,26 @@ func (l LikeHandler) Handle(inf rawMessage) ([]byte, bool, error) {
 	likeMessage := likedMessage{}
 	err := json.Unmarshal(inf.Msg, &likeMessage)
 	id := likeMessage.TweetId
-	rows, errTwo := l.Database.CheckLike(id, likeMessage.Username)
+	canLike, errTwo := l.Database.CheckLike(id, likeMessage.UserID)
 	if errTwo != nil {
 		return nil, true, errTwo
 	}
 
-	for rows.Next() {
-		mockLike := likedMessage{}
-		err := rows.Scan(&mockLike.TweetId, &mockLike.Username)
-		if err != nil {
-			return nil, false, err
+	if canLike == false {
+		likeFailed := likedMessage{
+			Typ:     "failedLike",
+			UserID:  likeMessage.UserID,
+			TweetId: id,
 		}
-		if mockLike.TweetId == id && mockLike.Username == likeMessage.Username {
-			likeFailed := likedMessage{
-				Typ:      "failedLike",
-				Username: likeMessage.Username,
-				TweetId:  id,
-			}
-			byteLikeFail, _ := json.Marshal(likeFailed)
-			return byteLikeFail, false, nil
-		}
+		byteLikeFail, _ := json.Marshal(likeFailed)
+		return byteLikeFail, false, nil
 	}
 
-	err = l.Database.LikeTweet(id, likeMessage.Username)
+	err = l.Database.LikeTweet(id, likeMessage.UserID)
 	if err != nil {
 		return nil, true, errors.Wrap(err, "could not like your tweet")
 	}
-	tweet, err := l.Database.GetRow(id)
+	tweet, err := l.Database.GetTweet(id)
 	copyTweet := Infos{}
 	if tweet != nil {
 		copyTweet.Tweet = *tweet
