@@ -23,7 +23,7 @@ func Test_UserHandler(t *testing.T) {
 				Typ: "login",
 				Msg: []byte(`{"typ":"login","username":"MaxDrn","password":"Hallo"}`),
 			},
-			expectedOutput: []byte(`{"typ":"loggedin","username":"MaxDrn"}`),
+			expectedOutput: []byte(`{"id":0,"typ":"loggedin","username":"MaxDrn"}`),
 			expectedError:  false,
 		},
 	}
@@ -37,4 +37,24 @@ func Test_UserHandler(t *testing.T) {
 			assert.EqualValues(tt, val.expectedError, err != nil, "Error not as expected")
 		})
 	}
+}
+
+func Test_CanHandle_User(t *testing.T) {
+	m := mockDB{}
+	testObj := NewUserHandler(&m)
+
+	testMsg := rawMessage{
+		Typ: "login",
+		Msg: []byte(`{"typ":"login"}`),
+	}
+	data := testObj.CanHandle(testMsg)
+	assert.EqualValues(t, true, data, "output not as expected")
+
+	testMsg2 := rawMessage{
+		Typ: "like",
+		Msg: []byte(`{"typ":"like"}`),
+	}
+
+	dataTwo := testObj.CanHandle(testMsg2)
+	assert.EqualValues(t, false, dataTwo, "output not as expected")
 }

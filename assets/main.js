@@ -181,8 +181,8 @@ function tweetListener(tweetButton, message, connection) {
                             id: 0,
                             time: time,
                             likes: 0,
-                            user: username,
                             userid: userID,
+                            user: username,
                             message: message,
                         }
                     };

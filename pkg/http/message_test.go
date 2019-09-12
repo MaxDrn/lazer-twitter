@@ -18,12 +18,12 @@ func Test_MessageHandler(t *testing.T) {
 		expectedError  bool
 	}{
 		{
-			name: "Default test",
+			name: "successful tweet",
 			msg: rawMessage{
 				Typ: "message",
 				Msg: nil,
 			},
-			expectedOutput: []byte(`{"typ":"","tweet":{"id":0,"time":"","likes":0,"user":"","message":""}}`),
+			expectedOutput: []byte(`{"typ":"","tweet":{"id":0,"time":"","likes":0,"userid":0,"user":"","message":""}}`),
 			expectedError:  false,
 		},
 	}
