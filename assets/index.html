@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="./assets/bootstrap.min.css">
     <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./style.css" type="text/css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 <body>
 <div class="title">
@@ -17,7 +18,8 @@
         Idea
     </div>
 
-    This is a small Project, where the idea is to code a simple Twitter clone called ‘Lazer-Twitter’ with very basic features.
+    This is a small Project, where the idea is to code a simple Twitter clone called ‘Lazer-Twitter’ with very basic
+    features.
 
     It will contain a feed which consists of individual tweets made by different users.
 
@@ -34,11 +36,23 @@
     in order to publish your first tweet!
 </div>
 <div class="interactive">
-    Username:
-    <input type="text" class="name" id="userField" size="35">
+    <div id="info" class="loginInfo">
+    </div>
+    <button id="signOut">
+        <i class="fa fa-sign-out" style="color: white;"></i>
+    </button>
+    <input type="text" size="10" class="name" id="userField" placeholder="Username">
+    <input type="password" size="10" class="name" id="passwordField" placeholder="Password">
+    <button class="tweetButton" id="signin">
+        Sign In
+    </button>
     <button class="tweetButton" id="tButton">
         Write a Tweet!
     </button>
+    <button class="tweetButton" id="signup">
+        Sign Up
+    </button>
+
 </div>
 <div class="feed" id="feed">
 </div>

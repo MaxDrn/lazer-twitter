@@ -1,7 +1,6 @@
 package http
 
 import (
-	"errors"
 	"lazer-twitter/persistence"
 	"testing"
 
@@ -14,6 +13,40 @@ type mockDB struct {
 	returnedObjects int
 }
 
+func (m *mockDB) InsertTweet(tweet *persistence.ClientTweet) (int, error) {
+	return 0, nil
+}
+
+func (m *mockDB) GetTweet(int) (*persistence.ClientTweet, error) {
+	return nil, nil
+}
+
+func (m *mockDB) Login(string, string) (int, bool, error) {
+	if m.returnError == true {
+		return 0, false, nil
+	} else {
+		return 0, true, nil
+	}
+}
+
+func (m *mockDB) Register(string, string) (bool, error) {
+	if m.returnError == true {
+		return false, nil
+	} else {
+		return true, nil
+	}
+}
+
+func (m *mockDB) CheckLike(int, int) (bool, error) {
+	m.likedCalls++
+	if m.returnError == true {
+		return false, nil
+	} else {
+		return true, nil
+	}
+	return true, nil
+}
+
 var _ persistence.Database = &mockDB{}
 
 func (m *mockDB) InsertIntoDatabase(tweet *persistence.ClientTweet) (int, error) {
@@ -24,6 +57,7 @@ func (m *mockDB) GetAllTweets() ([]persistence.ClientTweet, error) {
 		Id:      0,
 		Time:    "now",
 		Likes:   2,
+		UserID:  0,
 		User:    "Max",
 		Message: "Hallo",
 	}
@@ -32,6 +66,7 @@ func (m *mockDB) GetAllTweets() ([]persistence.ClientTweet, error) {
 		Id:      1,
 		Time:    "now",
 		Likes:   1,
+		UserID:  0,
 		User:    "Peter",
 		Message: "Hey",
 	}
@@ -44,19 +79,15 @@ func (m *mockDB) GetAllTweets() ([]persistence.ClientTweet, error) {
 	}
 	return nil, nil
 }
-func (m *mockDB) LikeTweet(i int) error {
-	m.likedCalls++
-	if m.returnError == true {
-		return errors.New("failed")
-	} else {
-		return nil
-	}
+func (m *mockDB) LikeTweet(i int, ii int) error {
+	return nil
 }
 func (m *mockDB) GetRow(j int) (*persistence.ClientTweet, error) {
 	mockTweet := persistence.ClientTweet{
 		Id:      1,
 		Time:    "now",
 		Likes:   1,
+		UserID:  0,
 		User:    "Peter",
 		Message: "Hey",
 	}
@@ -89,7 +120,7 @@ func Test_JoinHandler(t *testing.T) {
 				Msg: []byte(`{"typ":"join"}`),
 			},
 			returnedObjects: 1,
-			expectedOutput:  []byte(`{"typ":"all","tweetObjects":[{"id":0,"time":"now","likes":2,"user":"Max","message":"Hallo"}]}`),
+			expectedOutput:  []byte(`{"typ":"all","tweetObjects":[{"id":0,"time":"now","likes":2,"userid":0,"user":"Max","message":"Hallo"}]}`),
 			expectedError:   false,
 		},
 		{
@@ -99,7 +130,7 @@ func Test_JoinHandler(t *testing.T) {
 				Msg: []byte(`{"typ":"join"}`),
 			},
 			returnedObjects: 2,
-			expectedOutput:  []byte(`{"typ":"all","tweetObjects":[{"id":0,"time":"now","likes":2,"user":"Max","message":"Hallo"},{"id":1,"time":"now","likes":1,"user":"Peter","message":"Hey"}]}`),
+			expectedOutput:  []byte(`{"typ":"all","tweetObjects":[{"id":0,"time":"now","likes":2,"userid":0,"user":"Max","message":"Hallo"},{"id":1,"time":"now","likes":1,"userid":0,"user":"Peter","message":"Hey"}]}`),
 			expectedError:   false,
 		},
 	}

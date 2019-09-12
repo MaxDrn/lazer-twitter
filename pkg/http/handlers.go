@@ -33,6 +33,7 @@ func NewWebSocketHandler(db persistence.Database) *WebSocketHandler {
 			NewMessageHandler(db),
 			NewJoinHandler(db),
 			NewLikeHandler(db),
+			NewUserHandler(db),
 		},
 	}
 }
