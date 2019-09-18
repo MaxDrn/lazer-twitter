@@ -42,16 +42,39 @@ func (l *UserHandler) Handle(raw rawMessage) ([]byte, bool, error) {
 	return nil, false, nil
 }
 func (l *UserHandler) Login(username string, password string) ([]byte, error) {
-	id, ok, err := l.database.Login(username, password)
+	id, blockedUserIds, ok, err := l.database.Login(username, password)
 	if err != nil {
 		return nil, err
 	}
 
 	if ok == true {
+		filteredTweets := make([]persistence.ClientTweet, 0)
+		blockedUsernames := make([]string, 0)
+		tweets, err := l.database.GetAllTweets()
+		if err != nil {
+			return nil, err
+		}
+		ok := true
+		for _, tweet := range tweets {
+			for _, val := range blockedUserIds {
+				if val == tweet.UserID {
+					ok = false
+					blockedUsernames = append(blockedUsernames, tweet.User)
+				}
+			}
+			if ok {
+				filteredTweets = append(filteredTweets, tweet)
+			}
+			ok = true
+		}
+
 		loginMessage := persistence.Login{
-			Uid:      id,
-			Typ:      "loggedin",
-			Username: username,
+			Uid:              id,
+			Typ:              "loggedin",
+			Username:         username,
+			BlockedIds:       blockedUserIds,
+			BlockedUsernames: blockedUsernames,
+			UpdatedTweets:    filteredTweets,
 		}
 
 		byteMsg, err := json.Marshal(loginMessage)
@@ -61,9 +84,12 @@ func (l *UserHandler) Login(username string, password string) ([]byte, error) {
 		return byteMsg, nil
 	} else if ok != true {
 		failedLogin := persistence.Login{
-			Uid:      id,
-			Typ:      "failedLogin",
-			Username: username,
+			Uid:              id,
+			Typ:              "failedLogin",
+			Username:         username,
+			BlockedIds:       nil,
+			BlockedUsernames: nil,
+			UpdatedTweets:    nil,
 		}
 		byteMsg, err := json.Marshal(failedLogin)
 		if err != nil {

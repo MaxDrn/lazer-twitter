@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"lazer-twitter/persistence"
 	"testing"
 
@@ -13,6 +14,42 @@ type mockDB struct {
 	returnedObjects int
 }
 
+func (m *mockDB) InsertBlockedUser(int, int) (bool, error) {
+	if m.returnError {
+		return false, nil
+	} else if !m.returnError {
+		return true, nil
+	}
+	return true, nil
+}
+
+func (m *mockDB) RemoveBlockedUser(int, int) (bool, error) {
+	if m.returnError {
+		return false, nil
+	} else if !m.returnError {
+		return true, nil
+	}
+	return true, nil
+}
+
+func (m *mockDB) GetBlockedUserFromId(int) ([]int, error) {
+	return nil, nil
+}
+
+func (m *mockDB) FilteredTweets(int) ([]persistence.ClientTweet, string, error) {
+	fmt.Println("test")
+	return nil, "nil", nil
+}
+
+func (m *mockDB) GetTweetsFromUserID(int) ([]persistence.ClientTweet, error) {
+	if m.returnError {
+		return nil, nil
+	} else if !m.returnError {
+		return []persistence.ClientTweet{}, nil
+	}
+	return []persistence.ClientTweet{}, nil
+}
+
 func (m *mockDB) InsertTweet(tweet *persistence.ClientTweet) (int, error) {
 	return 0, nil
 }
@@ -21,11 +58,11 @@ func (m *mockDB) GetTweet(int) (*persistence.ClientTweet, error) {
 	return nil, nil
 }
 
-func (m *mockDB) Login(string, string) (int, bool, error) {
+func (m *mockDB) Login(string, string) (int, []int, bool, error) {
 	if m.returnError == true {
-		return 0, false, nil
+		return 0, nil, false, nil
 	} else {
-		return 0, true, nil
+		return 0, nil, true, nil
 	}
 }
 
@@ -44,7 +81,6 @@ func (m *mockDB) CheckLike(int, int) (bool, error) {
 	} else {
 		return true, nil
 	}
-	return true, nil
 }
 
 var _ persistence.Database = &mockDB{}

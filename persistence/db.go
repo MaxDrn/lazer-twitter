@@ -26,10 +26,13 @@ type likedMessage struct {
 }
 
 type Login struct {
-	Uid      int    `json:"id"`
-	Typ      string `json:"typ"`
-	Username string `json:"username"`
-	Password string `json:"password,omitempty"`
+	Uid              int           `json:"id"`
+	Typ              string        `json:"typ"`
+	Username         string        `json:"username"`
+	BlockedIds       []int         `json:"blockedids"`
+	BlockedUsernames []string      `json:"blockedusernames"`
+	Password         string        `json:"password,omitempty"`
+	UpdatedTweets    []ClientTweet `json:"tweetObjects"`
 }
 
 func NewDatabase() (*database, error) {
@@ -44,9 +47,14 @@ type Database interface {
 	GetAllTweets() ([]ClientTweet, error)
 	LikeTweet(int, int) error
 	GetTweet(int) (*ClientTweet, error)
-	Login(string, string) (int, bool, error)
+	Login(string, string) (int, []int, bool, error)
 	Register(string, string) (bool, error)
 	CheckLike(int, int) (bool, error)
+	FilteredTweets(int) ([]ClientTweet, string, error)
+	GetTweetsFromUserID(int) ([]ClientTweet, error)
+	InsertBlockedUser(int, int) (bool, error)
+	RemoveBlockedUser(int, int) (bool, error)
+	GetBlockedUserFromId(int) ([]int, error)
 }
 type database struct {
 	database *sql.DB
@@ -153,24 +161,29 @@ func connectToDatabase() (*sql.DB, error) {
 	CREATE TABLE IF NOT EXISTS Tweets(Id SERIAL PRIMARY KEY, TweetTime text, Likes int, UserID int, Username text, Message text);
 	CREATE TABLE IF NOT EXISTS UserData(Id SERIAL PRIMARY KEY, Username text, Credentials text);
 	CREATE TABLE IF NOT EXISTS LikedTweets(Id int, UserID int);
+	CREATE TABLE IF NOT EXISTS BlockedUser(Id int, BlockedID int);
 	`)
 	return db, nil
 }
 
-func (d database) Login(username string, password string) (int, bool, error) {
+func (d database) Login(username string, password string) (int, []int, bool, error) {
 	rows, _ := d.database.Query(`SELECT Id, Username, Credentials FROM UserData WHERE Username=$1`, username)
 	pass := tempPass{}
 	rows.Next()
-	rows.Scan(&pass.Uid, &pass.username, &pass.password)
+	_ = rows.Scan(&pass.Uid, &pass.username, &pass.password)
 
 	err := bcrypt.CompareHashAndPassword([]byte(pass.password), []byte(password))
 	if err != nil {
-		return pass.Uid, false, nil
+		return pass.Uid, nil, false, nil
 	} else if err == nil && username == pass.username {
-		return pass.Uid, true, nil
+		blockedUser, err := d.GetBlockedUserFromId(pass.Uid)
+		if err != nil {
+			return pass.Uid, nil, false, err
+		}
+		return pass.Uid, blockedUser, true, nil
 	}
 
-	return pass.Uid, false, nil
+	return pass.Uid, nil, false, nil
 }
 
 func (d database) Register(username string, password string) (bool, error) {
@@ -193,7 +206,7 @@ func (d database) Register(username string, password string) (bool, error) {
 
 func (d database) CheckLike(tweetid int, userid int) (bool, error) {
 	rows, err := d.database.Query(`SELECT UserID FROM Tweets WHERE Id=$1;`, tweetid)
-	rows.Next()
+	_ = rows.Next()
 	tempLike := likedMessage{}
 	err = rows.Scan(&tempLike.UserID)
 	if err != nil {
@@ -210,6 +223,82 @@ func (d database) CheckLike(tweetid int, userid int) (bool, error) {
 	if !hasResult && userid != tempLike.UserID {
 		return true, nil
 	}
-
 	return false, nil
+}
+
+func (d database) FilteredTweets(blockid int) ([]ClientTweet, string, error) {
+	tweets := make([]ClientTweet, 0)
+	blockedTweet := ClientTweet{}
+	userRow, err := d.database.Query(`SELECT Username FROM Tweets WHERE UserID=$1;`, blockid)
+	if err != nil {
+		return nil, "nil", err
+	}
+	userRow.Next()
+	errT := userRow.Scan(&blockedTweet.User)
+	if errT != nil {
+		return nil, "nil", errT
+	}
+	result, err := d.database.Query(`SELECT * FROM Tweets WHERE NOT UserID=$1;`, blockid)
+	if err != nil {
+		return nil, blockedTweet.User, err
+	}
+	for result.Next() {
+		tweet := ClientTweet{}
+		err := result.Scan(&tweet.Id, &tweet.Time, &tweet.Likes, &tweet.UserID, &tweet.User, &tweet.Message)
+		if err != nil {
+			return nil, blockedTweet.User, err
+		}
+		tweets = append(tweets, tweet)
+	}
+	return tweets, blockedTweet.User, nil
+}
+
+func (d database) GetTweetsFromUserID(userid int) ([]ClientTweet, error) {
+	tweets := make([]ClientTweet, 0)
+	result, err := d.database.Query(`SELECT * FROM Tweets WHERE UserID=$1;`, userid)
+	if err != nil {
+		return nil, err
+	}
+	for result.Next() {
+		tweet := ClientTweet{}
+		err := result.Scan(&tweet.Id, &tweet.Time, &tweet.Likes, &tweet.UserID, &tweet.User, &tweet.Message)
+		if err != nil {
+			return nil, err
+		}
+		tweets = append(tweets, tweet)
+	}
+	return tweets, nil
+}
+
+func (d database) InsertBlockedUser(userID int, blockedUser int) (bool, error) {
+	_, err := d.database.Exec(`INSERT INTO BlockedUser VALUES($1, $2);`, userID, blockedUser)
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
+}
+
+func (d database) RemoveBlockedUser(userID int, blockedUser int) (bool, error) {
+	_, err := d.database.Exec(`DELETE FROM BlockedUser WHERE Id=$1 AND BlockedID=$2;`, userID, blockedUser)
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
+}
+
+func (d database) GetBlockedUserFromId(id int) ([]int, error) {
+	result, err := d.database.Query(`SELECT BlockedID FROM BlockedUser WHERE Id=$1;`, id)
+	if err != nil {
+		return nil, err
+	}
+	blockedIds := make([]int, 0)
+	temp := Login{}
+	for result.Next() {
+		err := result.Scan(&temp.Uid)
+		if err != nil {
+			return nil, err
+		}
+		blockedIds = append(blockedIds, temp.Uid)
+	}
+	return blockedIds, nil
 }
