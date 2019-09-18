@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"lazer-twitter/persistence"
 	"testing"
 
@@ -37,7 +36,6 @@ func (m *mockDB) GetBlockedUserFromId(int) ([]int, error) {
 }
 
 func (m *mockDB) FilteredTweets(int) ([]persistence.ClientTweet, string, error) {
-	fmt.Println("test")
 	return nil, "nil", nil
 }
 
