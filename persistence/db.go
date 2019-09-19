@@ -49,6 +49,7 @@ type Database interface {
 	InsertBlockedUser(int, int) (bool, error)
 	RemoveBlockedUser(int, int) (bool, error)
 	GetBlockedIdsFromUserId(int) ([]int, error)
+	UsernameFromId(int) (string, error)
 }
 type database struct {
 	database *sql.DB
@@ -295,4 +296,23 @@ func (d database) GetBlockedIdsFromUserId(id int) ([]int, error) {
 		blockedIds = append(blockedIds, temp.Uid)
 	}
 	return blockedIds, nil
+}
+
+func (d database) UsernameFromId(id int) (string, error) {
+	result, err := d.database.Query(`SELECT Username FROM UserData WHERE Id=$1;`, id)
+	if err != nil {
+		return "nil", err
+	}
+	result.Next()
+	usr := ""
+	err = result.Scan(&usr)
+	if err != nil {
+		return "nil", err
+	}
+	return usr, nil
+}
+
+func (d database) FilterBlockedTweets(ids []int) ([]ClientTweet, error) {
+
+	return nil, nil
 }

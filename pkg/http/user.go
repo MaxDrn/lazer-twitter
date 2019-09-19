@@ -54,12 +54,19 @@ func (l *UserHandler) Login(username string, password string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		for _, val := range blockedUserIds {
+			user, err := l.database.UsernameFromId(val)
+			if err != nil {
+				return nil, err
+			}
+			blockedUsernames = append(blockedUsernames, user)
+		}
 		ok := true
 		for _, tweet := range tweets {
 			for _, val := range blockedUserIds {
 				if val == tweet.UserID {
 					ok = false
-					blockedUsernames = append(blockedUsernames, tweet.User)
 				}
 			}
 			if ok {
