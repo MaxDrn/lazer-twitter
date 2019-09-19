@@ -20,7 +20,7 @@ func (l *UserHandler) CanHandle(raw rawMessage) bool {
 }
 
 func (l *UserHandler) Handle(raw rawMessage) ([]byte, bool, error) {
-	userCredentials := persistence.Login{}
+	userCredentials := persistence.User{}
 	err := json.Unmarshal(raw.Msg, &userCredentials)
 	if err != nil {
 		return nil, false, err
@@ -68,7 +68,7 @@ func (l *UserHandler) Login(username string, password string) ([]byte, error) {
 			ok = true
 		}
 
-		loginMessage := persistence.Login{
+		loginMessage := persistence.User{
 			Uid:              id,
 			Typ:              "loggedin",
 			Username:         username,
@@ -83,7 +83,7 @@ func (l *UserHandler) Login(username string, password string) ([]byte, error) {
 		}
 		return byteMsg, nil
 	} else if ok != true {
-		failedLogin := persistence.Login{
+		failedLogin := persistence.User{
 			Uid:              id,
 			Typ:              "failedLogin",
 			Username:         username,
@@ -108,7 +108,7 @@ func (l *UserHandler) Register(username string, password string) ([]byte, error)
 	}
 
 	if ok == true {
-		registerMessage := persistence.Login{
+		registerMessage := persistence.User{
 			Typ:      "registered",
 			Username: username,
 		}
@@ -119,7 +119,7 @@ func (l *UserHandler) Register(username string, password string) ([]byte, error)
 		}
 		return byteMsg, nil
 	} else if ok != true {
-		failedRegister := persistence.Login{
+		failedRegister := persistence.User{
 			Typ:      "failedRegister",
 			Username: username,
 		}

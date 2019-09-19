@@ -31,7 +31,7 @@ func (m *mockDB) RemoveBlockedUser(int, int) (bool, error) {
 	return true, nil
 }
 
-func (m *mockDB) GetBlockedUserFromId(int) ([]int, error) {
+func (m *mockDB) GetBlockedIdsFromUserId(int) ([]int, error) {
 	return nil, nil
 }
 
