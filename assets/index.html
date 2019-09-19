@@ -31,8 +31,8 @@
 
     <br>
 
-    To begin, enter your username in the field above the feed and submit it.
-    Now that you have got your username set, you can click on the button "Write a Tweet",
+    To begin, create a new account. After that you can log in to your account.
+    Now that you are logged in, you can click on the 'Write Tweet' button
     in order to publish your first tweet!
 </div>
 <div class="interactive">
@@ -47,14 +47,20 @@
         Sign In
     </button>
     <button class="tweetButton" id="tButton">
-        Write a Tweet!
+        Write Tweet
     </button>
     <button class="tweetButton" id="signup">
         Sign Up
     </button>
 
 </div>
-<div class="feed" id="feed">
+<div class="wrappper" style="width:100%; height: 100%;">
+    <div class="feed" id="feed"></div>
+    <div class="blockList" id="blockList">
+        <div class="blockTitle">
+            Blocked User
+        </div>
+    </div>
 </div>
 <script src="./assets/moment.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>

@@ -20,7 +20,7 @@ func (l *UserHandler) CanHandle(raw rawMessage) bool {
 }
 
 func (l *UserHandler) Handle(raw rawMessage) ([]byte, bool, error) {
-	userCredentials := persistence.Login{}
+	userCredentials := persistence.User{}
 	err := json.Unmarshal(raw.Msg, &userCredentials)
 	if err != nil {
 		return nil, false, err
@@ -42,16 +42,33 @@ func (l *UserHandler) Handle(raw rawMessage) ([]byte, bool, error) {
 	return nil, false, nil
 }
 func (l *UserHandler) Login(username string, password string) ([]byte, error) {
-	id, ok, err := l.database.Login(username, password)
+	id, blockedUserIds, ok, err := l.database.Login(username, password)
+	if err != nil {
+		return nil, err
+	}
+	filteredTweets, err := l.database.GetTweetsForUser(id)
 	if err != nil {
 		return nil, err
 	}
 
 	if ok == true {
-		loginMessage := persistence.Login{
-			Uid:      id,
-			Typ:      "loggedin",
-			Username: username,
+		blockedUsernames := make([]string, 0)
+
+		for _, val := range blockedUserIds {
+			user, err := l.database.UsernameFromId(val)
+			if err != nil {
+				return nil, err
+			}
+			blockedUsernames = append(blockedUsernames, user)
+		}
+
+		loginMessage := persistence.User{
+			Uid:              id,
+			Typ:              "loggedin",
+			Username:         username,
+			BlockedIds:       blockedUserIds,
+			BlockedUsernames: blockedUsernames,
+			UpdatedTweets:    filteredTweets,
 		}
 
 		byteMsg, err := json.Marshal(loginMessage)
@@ -60,10 +77,13 @@ func (l *UserHandler) Login(username string, password string) ([]byte, error) {
 		}
 		return byteMsg, nil
 	} else if ok != true {
-		failedLogin := persistence.Login{
-			Uid:      id,
-			Typ:      "failedLogin",
-			Username: username,
+		failedLogin := persistence.User{
+			Uid:              id,
+			Typ:              "failedLogin",
+			Username:         username,
+			BlockedIds:       nil,
+			BlockedUsernames: nil,
+			UpdatedTweets:    nil,
 		}
 		byteMsg, err := json.Marshal(failedLogin)
 		if err != nil {
@@ -82,7 +102,7 @@ func (l *UserHandler) Register(username string, password string) ([]byte, error)
 	}
 
 	if ok == true {
-		registerMessage := persistence.Login{
+		registerMessage := persistence.User{
 			Typ:      "registered",
 			Username: username,
 		}
@@ -93,7 +113,7 @@ func (l *UserHandler) Register(username string, password string) ([]byte, error)
 		}
 		return byteMsg, nil
 	} else if ok != true {
-		failedRegister := persistence.Login{
+		failedRegister := persistence.User{
 			Typ:      "failedRegister",
 			Username: username,
 		}

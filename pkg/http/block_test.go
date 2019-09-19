@@ -9,7 +9,7 @@ import (
 
 var _ persistence.Database = &mockDB{}
 
-func Test_UserHandler(t *testing.T) {
+func Test_BlockHandler(t *testing.T) {
 
 	cases := []struct {
 		name           string
@@ -19,49 +19,49 @@ func Test_UserHandler(t *testing.T) {
 		returnError    bool
 	}{
 		{
-			name: "successful login",
+			name: "successful block",
 			msg: rawMessage{
-				Typ: "login",
-				Msg: []byte(`{"typ":"login","username":"MaxDrn","password":"Hallo"}`),
+				Typ: "block",
+				Msg: []byte(`{"typ":"block","requserid":1,"userid":1,"blockedIDs":[]}`),
 			},
-			expectedOutput: []byte(`{"id":0,"typ":"loggedin","username":"MaxDrn","blockedids":null,"blockedusernames":[],"tweetObjects":[]}`),
+			expectedOutput: []byte(`{"typ":"blocked","blockedIDs":[],"user":"nil","current":1,"tweetObjects":[]}`),
 			expectedError:  false,
 			returnError:    false,
 		},
 		{
-			name: "successful Register",
+			name: "successful unblock",
 			msg: rawMessage{
-				Typ: "signUp",
-				Msg: []byte(`{"typ":"login","username":"MaxDrn","password":"Hallo"}`),
+				Typ: "unblock",
+				Msg: []byte(`{"typ":"unblock","requserid":1,"userid":0}`),
 			},
-			expectedOutput: []byte(`{"id":0,"typ":"registered","username":"MaxDrn","blockedids":null,"blockedusernames":null,"tweetObjects":null}`),
+			expectedOutput: []byte(`{"typ":"unblock","userid":0,"tweetObjects":[]}`),
 			expectedError:  false,
 			returnError:    false,
 		},
 		{
-			name: "failed login",
+			name: "failed block",
 			msg: rawMessage{
-				Typ: "login",
-				Msg: []byte(`{"typ":"login","username":"Test","password":"test"}`),
+				Typ: "block",
+				Msg: []byte(`{"typ":"block","requserid":1,"userid":0,"blockedIDs":[]}`),
 			},
-			expectedOutput: []byte(`{"id":0,"typ":"failedLogin","username":"Test","blockedids":null,"blockedusernames":null,"tweetObjects":null}`),
+			expectedOutput: []byte(`{"typ":"blocked","blockedIDs":[],"user":"nil","current":0,"tweetObjects":[]}`),
 			expectedError:  false,
 			returnError:    true,
 		},
 		{
-			name: "failed register",
+			name: "failed unblock",
 			msg: rawMessage{
-				Typ: "signUp",
-				Msg: []byte(`{"typ":"signUp","username":"Test","password":"test"}`),
+				Typ: "unblock",
+				Msg: []byte(`{"typ":"unblock","requserid":1,"userid":0}`),
 			},
-			expectedOutput: []byte(`{"id":0,"typ":"failedRegister","username":"Test","blockedids":null,"blockedusernames":null,"tweetObjects":null}`),
+			expectedOutput: []byte(`{"typ":"unblock","userid":0,"tweetObjects":null}`),
 			expectedError:  false,
 			returnError:    true,
 		},
 	}
 
 	m := mockDB{}
-	testObj := NewUserHandler(&m)
+	testObj := NewBlockHandler(&m)
 	for _, val := range cases {
 		t.Run(val.name, func(tt *testing.T) {
 			if val.returnError == true {
@@ -75,20 +75,20 @@ func Test_UserHandler(t *testing.T) {
 	}
 }
 
-func Test_CanHandle_User(t *testing.T) {
+func Test_CanHandle_Block(t *testing.T) {
 	m := mockDB{}
-	testObj := NewUserHandler(&m)
+	testObj := NewBlockHandler(&m)
 
 	testMsg := rawMessage{
-		Typ: "login",
-		Msg: []byte(`{"typ":"login"}`),
+		Typ: "block",
+		Msg: []byte(`{"typ":"block"}`),
 	}
 	data := testObj.CanHandle(testMsg)
 	assert.EqualValues(t, true, data, "output not as expected")
 
 	testMsg2 := rawMessage{
-		Typ: "signUp",
-		Msg: []byte(`{"typ":"signUp"}`),
+		Typ: "unblock",
+		Msg: []byte(`{"typ":"unblock"}`),
 	}
 
 	dataTwo := testObj.CanHandle(testMsg2)
