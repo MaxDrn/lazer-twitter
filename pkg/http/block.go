@@ -54,28 +54,20 @@ func (b *BlockHandler) Handle(inf rawMessage) ([]byte, bool, error) {
 			return nil, false, err
 		}
 
-		filteredTweets := make([]persistence.ClientTweet, 0)
-
-		tweets, err := b.Database.GetAllTweets()
+		tweets, err := b.Database.TweetsFilteredByUser(blockMsg.BlockedIDs)
 		if err != nil {
 			return nil, false, err
 		}
 
+		blockedUserTweets, err := b.Database.GetAllTweets()
+		if err != nil {
+			return nil, false, err
+		}
 		username := "nil"
-		ok := true
-		for _, tweet := range tweets {
+		for _, tweet := range blockedUserTweets {
 			if tweet.UserID == blockMsg.UserID {
 				username = tweet.User
 			}
-			for _, val := range blockMsg.BlockedIDs {
-				if val == tweet.UserID {
-					ok = false
-				}
-			}
-			if ok {
-				filteredTweets = append(filteredTweets, tweet)
-			}
-			ok = true
 		}
 
 		_, err = b.Database.InsertBlockedUser(blockMsg.ReqUserID, blockMsg.UserID)
@@ -87,7 +79,7 @@ func (b *BlockHandler) Handle(inf rawMessage) ([]byte, bool, error) {
 			BlockedIDs:   blockMsg.BlockedIDs,
 			Username:     username,
 			CurrentBlock: blockMsg.UserID,
-			Tweets:       filteredTweets,
+			Tweets:       tweets,
 		}
 		byteFilteredTweets, _ := json.Marshal(allTweets)
 		return byteFilteredTweets, false, nil
