@@ -49,6 +49,7 @@ type Database interface {
 	RemoveBlockedUser(int, int) (bool, error)
 	GetBlockedIdsFromUserId(int) ([]int, error)
 	UsernameFromId(int) (string, error)
+	GetTweetsForUser(int) ([]ClientTweet, error)
 }
 type database struct {
 	database *sql.DB
@@ -284,7 +285,23 @@ func (d database) UsernameFromId(id int) (string, error) {
 	return usr, nil
 }
 
-func (d database) FilterBlockedTweets(ids []int) ([]ClientTweet, error) {
-
-	return nil, nil
+func (d database) GetTweetsForUser(userid int) ([]ClientTweet, error) {
+	stmt, err := d.database.Prepare(`SELECT * FROM Tweets WHERE UserID not in (select blockeduserid from blockeduser where userid=$1);`)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := stmt.Query(userid)
+	if err != nil {
+		return nil, err
+	}
+	tweets := make([]ClientTweet, 0)
+	for rows.Next() {
+		tempTweet := ClientTweet{}
+		err := rows.Scan(&tempTweet.Id, &tempTweet.Time, &tempTweet.Likes, &tempTweet.UserID, &tempTweet.User, &tempTweet.Message)
+		if err != nil {
+			return nil, err
+		}
+		tweets = append(tweets, tempTweet)
+	}
+	return tweets, nil
 }

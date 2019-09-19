@@ -54,7 +54,12 @@ func (b *BlockHandler) Handle(inf rawMessage) ([]byte, bool, error) {
 			return nil, false, err
 		}
 
-		tweets, err := b.Database.TweetsFilteredByUser(blockMsg.BlockedIDs)
+		_, err = b.Database.InsertBlockedUser(blockMsg.ReqUserID, blockMsg.UserID)
+		if err != nil {
+			return nil, false, err
+		}
+
+		tweets, err := b.Database.GetTweetsForUser(blockMsg.ReqUserID)
 		if err != nil {
 			return nil, false, err
 		}
@@ -68,11 +73,6 @@ func (b *BlockHandler) Handle(inf rawMessage) ([]byte, bool, error) {
 			if tweet.UserID == blockMsg.UserID {
 				username = tweet.User
 			}
-		}
-
-		_, err = b.Database.InsertBlockedUser(blockMsg.ReqUserID, blockMsg.UserID)
-		if err != nil {
-			return nil, false, err
 		}
 		allTweets := FilteredTweets{
 			Typ:          "blocked",
