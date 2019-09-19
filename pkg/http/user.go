@@ -46,26 +46,20 @@ func (l *UserHandler) Login(username string, password string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	filteredTweets, err := l.database.GetTweetsForUser(id)
+	if err != nil {
+		return nil, err
+	}
 
 	if ok == true {
-		filteredTweets := make([]persistence.ClientTweet, 0)
 		blockedUsernames := make([]string, 0)
-		tweets, err := l.database.GetAllTweets()
-		if err != nil {
-			return nil, err
-		}
-		ok := true
-		for _, tweet := range tweets {
-			for _, val := range blockedUserIds {
-				if val == tweet.UserID {
-					ok = false
-					blockedUsernames = append(blockedUsernames, tweet.User)
-				}
+
+		for _, val := range blockedUserIds {
+			user, err := l.database.UsernameFromId(val)
+			if err != nil {
+				return nil, err
 			}
-			if ok {
-				filteredTweets = append(filteredTweets, tweet)
-			}
-			ok = true
+			blockedUsernames = append(blockedUsernames, user)
 		}
 
 		loginMessage := persistence.User{

@@ -29,11 +29,11 @@ type UnblockMessage struct {
 }
 
 type FilteredTweets struct {
-	Typ          string                    `json:"typ"`
-	BlockedIDs   []int                     `json:"blockedIDs"`
-	Username     string                    `json:"user"`
-	CurrentBlock int                       `json:"current"`
-	Tweets       []persistence.ClientTweet `json:"tweetObjects"`
+	Typ             string                    `json:"typ"`
+	BlockedIDs      []int                     `json:"blockedIDs"`
+	BlockedUsername string                    `json:"user"`
+	CurrentBlock    int                       `json:"current"`
+	Tweets          []persistence.ClientTweet `json:"tweetObjects"`
 }
 
 type UnblockedTweets struct {
@@ -54,40 +54,26 @@ func (b *BlockHandler) Handle(inf rawMessage) ([]byte, bool, error) {
 			return nil, false, err
 		}
 
-		filteredTweets := make([]persistence.ClientTweet, 0)
-
-		tweets, err := b.Database.GetAllTweets()
-		if err != nil {
-			return nil, false, err
-		}
-
-		username := "nil"
-		ok := true
-		for _, tweet := range tweets {
-			if tweet.UserID == blockMsg.UserID {
-				username = tweet.User
-			}
-			for _, val := range blockMsg.BlockedIDs {
-				if val == tweet.UserID {
-					ok = false
-				}
-			}
-			if ok {
-				filteredTweets = append(filteredTweets, tweet)
-			}
-			ok = true
-		}
-
 		_, err = b.Database.InsertBlockedUser(blockMsg.ReqUserID, blockMsg.UserID)
 		if err != nil {
 			return nil, false, err
 		}
+
+		tweets, err := b.Database.GetTweetsForUser(blockMsg.ReqUserID)
+		if err != nil {
+			return nil, false, err
+		}
+
+		username, err := b.Database.UsernameFromId(blockMsg.UserID)
+		if err != nil {
+			return nil, false, nil
+		}
 		allTweets := FilteredTweets{
-			Typ:          "blocked",
-			BlockedIDs:   blockMsg.BlockedIDs,
-			Username:     username,
-			CurrentBlock: blockMsg.UserID,
-			Tweets:       filteredTweets,
+			Typ:             "blocked",
+			BlockedIDs:      blockMsg.BlockedIDs,
+			BlockedUsername: username,
+			CurrentBlock:    blockMsg.UserID,
+			Tweets:          tweets,
 		}
 		byteFilteredTweets, _ := json.Marshal(allTweets)
 		return byteFilteredTweets, false, nil

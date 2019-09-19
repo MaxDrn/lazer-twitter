@@ -56,7 +56,7 @@ function handleData(connection, feed, tweets, signOut, signIn, userField, passwo
             date.id = "date";
             likecount.className = "likecount";
             likecount.innerHTML = jsonData.tweet.likes;
-            likebutton.id = jsonData.tweet.id;
+            likebutton.id = "like" + jsonData.tweet.id.toString();
             likebutton.className = "likebutton";
             likebutton.innerHTML = parseInt(likecount.innerHTML) + " &#9786;";
             blockbutton.id = jsonData.tweet.id;
@@ -80,7 +80,7 @@ function handleData(connection, feed, tweets, signOut, signIn, userField, passwo
                 }
             }
         } else if (jsonData.typ === "liked") {
-            let desButton = document.getElementById(jsonData.tweet.id);
+            let desButton = document.getElementById("like" + jsonData.tweet.id);
             let newCount = jsonData.tweet.likes;
             desButton.innerHTML = parseInt(newCount) + " &#9786;";
         } else if (jsonData.typ === "loggedin") {
@@ -102,6 +102,9 @@ function handleData(connection, feed, tweets, signOut, signIn, userField, passwo
             }
 
             for (let i = 0; i < jsonData.blockedids.length; i++){
+                if (!blockedUser.includes(jsonData.blockedids[i])){
+                    blockedUser.push(jsonData.blockedids[i]);
+                }
                 let blockedUserDiv = document.createElement("div");
                 let unblockButton = document.createElement("button");
                 let blockedWrapper = document.createElement("div");
@@ -178,7 +181,7 @@ function receiveTweets(jsonData, connection, feed, tweets, i, renderDiv) {
     likecount.className = "likecount";
     likecount.innerHTML = jsonData.tweetObjects[i].likes;
     likebutton.className = "likebutton";
-    likebutton.id = jsonData.tweetObjects[i].id;
+    likebutton.id = "like" + jsonData.tweetObjects[i].id.toString();
     likebutton.innerHTML = parseInt(likecount.innerHTML) + " &#9786;";
     blockbutton.id = jsonData.tweetObjects[i].userid.toString();
     blockbutton.className = "blockbutton";
@@ -216,7 +219,7 @@ function render(ltweets, feed, connection, tweets){
         likecount.className = "likecount";
         likecount.innerHTML = ltweets[i].likes;
         likebutton.className = "likebutton";
-        likebutton.id = ltweets[i].id;
+        likebutton.id = "like" + ltweets[i].id.toString();
         likebutton.innerHTML = parseInt(likecount.innerHTML) + " &#9786;";
         blockbutton.id = ltweets[i].userid.toString();
         blockbutton.className = "blockbutton";
@@ -257,16 +260,17 @@ function signUp(user, pass, connection) {
 function likeListener(likebutton, connection) {
     likebutton.addEventListener("click", function () {
         if (username !== "" && username !== null && username !== undefined) {
+            let id = parseInt(this.id.split("like")[1]);
             let message = {
                 typ: "like",
                 userid: userID,
-                tweetid: parseInt(this.id)
+                tweetid: id
             };
 
             let strMessage = JSON.stringify(message);
             connection.send(strMessage);
         } else {
-            bootbox.alert("you cannot like a tweet when not logged in");
+            bootbox.alert("info: you cannot like a tweet when not logged in");
         }
     });
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/fid-dev/go-pflog/log"
 
 	"github.com/gorilla/websocket"
-	_ "github.com/lib/pq"
 )
 
 type MessageHandler interface {

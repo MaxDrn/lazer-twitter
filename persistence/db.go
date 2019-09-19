@@ -44,11 +44,12 @@ type Database interface {
 	Login(string, string) (int, []int, bool, error)
 	Register(string, string) (bool, error)
 	CheckLike(int, int) (bool, error)
-	FilteredTweets(int) ([]ClientTweet, string, error)
 	GetTweetsFromUserID(int) ([]ClientTweet, error)
 	InsertBlockedUser(int, int) (bool, error)
 	RemoveBlockedUser(int, int) (bool, error)
 	GetBlockedIdsFromUserId(int) ([]int, error)
+	UsernameFromId(int) (string, error)
+	GetTweetsForUser(int) ([]ClientTweet, error)
 }
 type database struct {
 	database *sql.DB
@@ -155,7 +156,7 @@ func connectToDatabase() (*sql.DB, error) {
 	CREATE TABLE IF NOT EXISTS Tweets(Id SERIAL PRIMARY KEY, TweetTime text, Likes int, UserID int, Username text, Message text);
 	CREATE TABLE IF NOT EXISTS UserData(Id SERIAL PRIMARY KEY, Username text, Credentials text);
 	CREATE TABLE IF NOT EXISTS LikedTweets(TweetID int, UserID int);
-	CREATE TABLE IF NOT EXISTS BlockedUser(UserID int, BlockedID int);
+	CREATE TABLE IF NOT EXISTS BlockedUser(UserID int, BlockedUserID int);
 	`)
 	return db, nil
 }
@@ -220,33 +221,6 @@ func (d database) CheckLike(tweetid int, userid int) (bool, error) {
 	return false, nil
 }
 
-func (d database) FilteredTweets(blockid int) ([]ClientTweet, string, error) {
-	tweets := make([]ClientTweet, 0)
-	blockedTweet := ClientTweet{}
-	userRow, err := d.database.Query(`SELECT Username FROM Tweets WHERE UserID=$1;`, blockid)
-	if err != nil {
-		return nil, "nil", err
-	}
-	userRow.Next()
-	errT := userRow.Scan(&blockedTweet.User)
-	if errT != nil {
-		return nil, "nil", errT
-	}
-	result, err := d.database.Query(`SELECT * FROM Tweets WHERE NOT UserID=$1;`, blockid)
-	if err != nil {
-		return nil, blockedTweet.User, err
-	}
-	for result.Next() {
-		tweet := ClientTweet{}
-		err := result.Scan(&tweet.Id, &tweet.Time, &tweet.Likes, &tweet.UserID, &tweet.User, &tweet.Message)
-		if err != nil {
-			return nil, blockedTweet.User, err
-		}
-		tweets = append(tweets, tweet)
-	}
-	return tweets, blockedTweet.User, nil
-}
-
 func (d database) GetTweetsFromUserID(userid int) ([]ClientTweet, error) {
 	tweets := make([]ClientTweet, 0)
 	result, err := d.database.Query(`SELECT * FROM Tweets WHERE UserID=$1;`, userid)
@@ -273,7 +247,7 @@ func (d database) InsertBlockedUser(userID int, blockedUser int) (bool, error) {
 }
 
 func (d database) RemoveBlockedUser(userID int, blockedUser int) (bool, error) {
-	_, err := d.database.Exec(`DELETE FROM BlockedUser WHERE UserID=$1 AND BlockedID=$2;`, userID, blockedUser)
+	_, err := d.database.Exec(`DELETE FROM BlockedUser WHERE UserID=$1 AND BlockedUserID=$2;`, userID, blockedUser)
 	if err != nil {
 		return false, nil
 	}
@@ -281,7 +255,7 @@ func (d database) RemoveBlockedUser(userID int, blockedUser int) (bool, error) {
 }
 
 func (d database) GetBlockedIdsFromUserId(id int) ([]int, error) {
-	result, err := d.database.Query(`SELECT BlockedID FROM BlockedUser WHERE UserID=$1;`, id)
+	result, err := d.database.Query(`SELECT BlockedUserID FROM BlockedUser WHERE UserID=$1;`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -295,4 +269,39 @@ func (d database) GetBlockedIdsFromUserId(id int) ([]int, error) {
 		blockedIds = append(blockedIds, temp.Uid)
 	}
 	return blockedIds, nil
+}
+
+func (d database) UsernameFromId(id int) (string, error) {
+	result, err := d.database.Query(`SELECT Username FROM UserData WHERE Id=$1;`, id)
+	if err != nil {
+		return "nil", err
+	}
+	result.Next()
+	usr := ""
+	err = result.Scan(&usr)
+	if err != nil {
+		return "nil", err
+	}
+	return usr, nil
+}
+
+func (d database) GetTweetsForUser(userid int) ([]ClientTweet, error) {
+	stmt, err := d.database.Prepare(`SELECT * FROM Tweets WHERE UserID not in (select blockeduserid from blockeduser where userid=$1);`)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := stmt.Query(userid)
+	if err != nil {
+		return nil, err
+	}
+	tweets := make([]ClientTweet, 0)
+	for rows.Next() {
+		tempTweet := ClientTweet{}
+		err := rows.Scan(&tempTweet.Id, &tempTweet.Time, &tempTweet.Likes, &tempTweet.UserID, &tempTweet.User, &tempTweet.Message)
+		if err != nil {
+			return nil, err
+		}
+		tweets = append(tweets, tempTweet)
+	}
+	return tweets, nil
 }
